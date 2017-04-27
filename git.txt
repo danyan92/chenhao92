@@ -48,3 +48,12 @@ github 就是为了开源的目的，首先去 github.com 上注册一个帐号。
     git remote add origin https://github.com/Git-Elite/CodeBase.git //蓝色部分为github托管的仓库地址
          5、提交至github仓库
     git push  origin master
+	
+	
+三.windows中的换行符为 CRLF， 而在Linux下的换行符为LF，所以在执行add . 时出现提示，解决办法：
+
+$ rm -rf .git  // 删除.git  
+$ git config --global core.autocrlf false  //禁用自动转换   
+$ git init    
+$ git add . 
+	
