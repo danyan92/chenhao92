@@ -1,0 +1,4 @@
+tomcat 安装
+下载tomcat版本并放到linux
+tar -zxvf apache-tomcat-8.5.6.tar.gz /apache-tomcat-8.5.6
+sudo /.start.sh

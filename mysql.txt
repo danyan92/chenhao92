@@ -1,0 +1,7 @@
+1.查询死锁
+show engine innodb status
+强行终止 mysql 数据库操作可能会产生 Record Locks ，解决办法如下
+显示 INNODB 引擎状态
+SHOW ENGINE INNODB STATUS\G
+查看输出里 LIST OF TRANSACTIONS FOR EACH SESSION: 最后的记录，看是否有 lock 信息，若有则 kill 掉该 MySQL thread id
+kill thread id

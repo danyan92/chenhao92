@@ -1,0 +1,24 @@
+$ wget http://download.redis.io/releases/redis-3.2.8.tar.gz
+$ tar xzf redis-3.2.8.tar.gz
+$ cd redis-3.2.8
+$ make
+
+
+vim redis-3.28/redis.conf
+//运行访问端口
+bind 0.0.0.0
+//保护模式
+protected-mode no
+//后台运行
+daemonize yes
+//密码
+requirepass 123456
+
+$ src/redis-server
+
+
+$ src/redis-cli
+redis> set foo bar
+OK
+redis> get foo
+"bar"

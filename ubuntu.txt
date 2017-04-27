@@ -1,0 +1,2567 @@
+------------------------------------------安装Ubuntu Server------------------------------------------
+
+用浏览器登录 http://www.ubuntu.com/ 并下载 Server LTS 64bit（处理器是32bit就下载32bit版本），LTS是指官方长期支持版本（通常是5年）
+下载完后用md5校验下， https://help.ubuntu.com/community/UbuntuHashes
+
+Language选择English，Install Ubuntu Server；
+Language再次选择English，Country选择other→Asia→China，locale选择United States - en_US.UTF-8，Detect keyboard layout选择No，Country of origin for the keyboard选择English (US)，Keyboard layout选择English (US)；
+输入Hostname如ubuntu，输入完整用户名如Jiudao hangzhou dev，输入用户名如jiudao，输入两次密码，如果提示Use weak password选择Yes，Encrypt your home directory选择No；
+自动检测到的时区如果是Asia/Shanghai则选择Yes否则选择No并手动选择Shanghai；
+Partitioning method选择Manual，Partition disks选择SCSI3 (0,0,0) (sda)
+Create new empty partition table on this device选择yes，选择pri/log...FREE SPACE，Create a new partition，0.5 GB，Primary，Beginning，Use as： Ext3，Mount point: /boot，Done setting up the partion
+重复上述步骤，swap分区4GB大小，剩下容量挂载到 / ，分区格式Ext4，Write the changes to disk均选择yes；
+Http proxy留空并选择Continue
+#取消下载更新，选择cancel
+how do you want manage upgrades on this system?选择No automatic updates，Sofware selection用空格键勾选OpenSSH server，Install the GRUP boot loader to the master boot recor?选择Yes，最后选择Continue
+
+------------------------------------------安装Ubuntu Desktop------------------------------------------
+
+用浏览器登录 http://www.ubuntu.com/ 并下载 Desktop LTS 64bit（处理器是32bit就下载32bit版本），LTS是指官方长期支持版本（通常是5年）
+
+安装步骤同Ubuntu Server
+
+------------------------------------------Linux命令------------------------------------------
+
+大部分Linux命令用法可以通过在命令后面加--help查看，如
+ls --help
+更详细的帮助可以通过man查看，如
+man ls
+
+------------------------------------------sudo 用法------------------------------------------
+
+安全起见，不使用root帐号（ubuntu默认禁用root），使用sudo来代替
+
+常用参数
+  -H, --set-home              将 HOME 变量设为目标用户的主目录
+  -u, --user=user             以指定用户或 ID
+                              运行命令(或编辑文件)
+
+使用root环境配置
+sudo -s     (similar to sudo su)
+
+保持当前shell环境
+sudo -i     (similar to sudo su - , gives you roots environment configuration)
+
+sudo 无法找到命令的原因， /etc/sudoers 中定义了 secure_path
+解决办法
+删除 /etc/sudoers 中的 secure_path
+或者执行命令前设置PATH
+sudo env PATH=$PATH <command>
+
+添加用户到sudoers组
+sudo visudo
+添加如下（jiudao用户使用sudo能执行所有程序，ccare用户能不输入密码关机/重启）
+jiudao  ALL=(ALL)       ALL
+ccare   ALL=(ALL) NOPASSWD: /sbin/shutdown,/sbin/reboot
+设置sudo环境下保留的环境变量（PATH除外）
+Defaults    env_keep += "JAVA_HOME"
+设置sudo环境下的PATH环境变量（不支持变量如$JAVA_HOME/bin）
+Defaults        secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+------------------------------------------su 用法------------------------------------------
+
+切换用户（使用sudo可以不用输入该用户密码）
+su username
+
+切换用户并执行命令
+su - <username> -c "<commands>"
+
+- will simulate a login of the specified user
+-c tells it that you want to run a command
+
+其实sudo支持用命令切换用户
+sudo -u [user] ...
+
+------------------------------------------更新Ubuntu------------------------------------------
+
+Ubuntu更新系统方式有多种，server版主要使用apt-get，Desktop版可以使用系统自带的software updater（图形化客户端，会自动定时检查可用更新并提示）
+
+更新Ubuntu软件仓库索引
+sudo apt-get update
+
+安装指定软件的更新
+sudo apt-get install <packagename>
+
+只下载软件不安装
+sudo apt-get download <packagename>
+
+查看软件的changelog
+sudo apt-get changelog <packagename>
+
+安装所有软件的更新
+sudo apt-get upgrade
+
+智能更新软件（包括linux内核
+sudo apt-get dist-upgrade
+
+升级操作系统
+sudo do-release-upgrade
+如果ssh远程登录执行该问题可能会出现异常，出现异常使用ssh通过1022端口连接该服务器
+升级后需要安装 linux-generic 并重启，否则virtualbox升级后可能依赖旧的kernel headers导致无法启动虚拟机
+
+自动安装安全更新
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+
+修改无人值守的频率（更新包列表，下载可升级的包，自动清理
+sudo vim /etc/apt/apt.conf.d/10periodic
+值设置为0即停用自动更新
+
+修改无人值守的频率（更新包列表，无人值守升级
+sudo vim /etc/apt/apt.conf.d/20auto-upgrades
+值设置为0即停用自动更新
+
+修改无人值守自动升级的内容（安全更新，更新
+sudo vim /etc/apt/apt.conf.d/50unattended-upgrades
+修改 Allowed-Origins ， Package-Blacklist 里的值
+
+sudo service unattended-upgrades restart
+
+查看apt历史
+less /var/log/apt/history.log
+
+重新安装指定软件
+sudo apt-get install --reinstall curl
+
+安装软件的某一版本
+sudo apt-get install mono-complete=4.0.2.5-0xamarin1
+
+------------------------------------------apt-get 异常退出后无法使用的解决办法------------------------------------------
+
+sudo rm /var/lib/apt/lists/lock
+sudo rm /var/lib/dpkg/lock
+sudo rm /var/cache/apt/archives/lock
+sudo dpkg --configure -a
+sudo fuser -k /var/cache/debconf/config.dat
+
+出现 dpkg:warning:files list files for package `***' missing, assuming packages has no files currently installed 的解决办法, 重新安装这些包
+
+------------------------------------------安装应用程序------------------------------------------
+
+从仓库安装应用程序如vim
+sudo apt-get install vim gcc make screen
+
+手动安装deb包
+sudo dpkg -i *.deb
+
+转换rpm包为deb包并安装
+sudo apt-get install alien
+sudo alien *.rpm
+sudo dpkg -i *.deb
+
+查询已安装的包
+dpkg -l
+
+查询包内文件的安装目标位置
+dpkg-query -L <app>
+
+搜索包依赖
+apt-cache depends fcitx
+查看该包被哪些包依赖
+apt-cache rdepends fcitx-bin
+
+检测程序的依赖库
+ldd aria2c
+
+重新设置软件如phpmyadmin
+sudo dpkg-reconfigure phpmyadmin
+
+重新设置键盘布局
+sudo dpkg-reconfigure console-data
+重启后生效
+
+------------------------------------------为固态硬盘配置TRIM------------------------------------------
+
+Ext4文件系统开启SSD TRIM
+
+sudo vim /etc/fstab
+添加参数discard
+重启
+
+手动TRIM
+sudo fstrim -v /
+
+------------------------------------------普通用户绑定1024以下端口------------------------------------------
+依赖：
+Linux kernels 2.6.24或以上版本有 CAP_NET_BIND_SERVICE 能力
+安装有 "libcap2-bin"
+运行如下命令
+setcap 'cap_net_bind_service=+ep' /path/to/program
+
+------------------------------------------查看/设置时区和时间------------------------------------------
+
+查看系统当前时间
+date
+
+查看系统当前时区
+date -R
+
+设置时区
+sudo dpkg-reconfigure tzdata
+
+自动同步时间
+sudo apt-get -y install ntp
+
+设置时间同步服务器
+sudo vim /etc/ntp.conf
+添加如下
+server ntp.ubuntu.com
+
+手动更新时间
+sudo service ntp stop
+sudo ntpdate ntp.ubuntu.com
+sudo service ntp start
+
+其他时间同步服务器参考 ntp.txt
+
+手动设置时间
+date -s "2 OCT 2006 18:00:00"
+date +%T -s "10:13:13"
+
+------------------------------------------安装文本编辑器------------------------------------------
+
+Server版主要使用如下三种编辑器
+vim/vi
+emacs
+nano
+
+nano用法
+ctrl + w    搜索
+all + w 继续搜索
+
+安装vim
+sudo apt-get -y install vim
+-y参数表示所有提示都自动回答yes
+
+------------------------------------------用户/用户组管理------------------------------------------
+
+查看所有用户
+cut -d: -f1 /etc/passwd
+
+查看所有用户组
+cut -d: -f1 /etc/group
+
+查看操作系统用户所属用户组
+groups <user>
+id <user>
+
+有可能出现找不到组的提示 groups: cannot find name for group ID 1001 ，重启即可
+
+添加用户（-m参数创建home目录，-M参数不创建）
+sudo useradd -s /bin/bash -m -G sudo <user>
+
+注：添加无登录功能的shell方法如下
+-s /usr/sbin/nologin
+
+查询当前用户使用的shell
+echo $SHELL
+
+修改当前用户的shell
+chsh
+
+修改其他用户的shell
+方法一：
+sudo chsh <user>
+方法二：
+usermod -s /bin/bash <user>
+
+设置bash为系统默认的shell
+sudo dpkg-reconfigure dash
+选择否
+
+设置密码（不用sudo无法设置短密码）
+sudo passwd <user>
+
+将用户加入sudo用户组
+gpasswd -a <user> sudo
+
+将用户从用户组中删除
+gpasswd -d <user> sudo
+
+禁用root帐户
+sudo passwd -l root
+
+删除用户
+sudo userdel -r <user>
+
+加 -r 参数会删除mailbox和用户目录
+
+------------------------------------------网络配置------------------------------------------
+
+显示可用网卡
+ip link show
+netstat -i
+ifconfig -a
+
+显示ip
+ip attr show
+显示ipv6
+ip -6 attr show
+
+临时配置网卡等信息
+sudo ifconfig wlan1 192.168.80.1 netmask 255.255.255.0
+
+禁用ipv6（比如vps ipv6被google封锁的情况
+sudo vim /etc/sysctl.conf
+在文件末尾添加如下
+# disable ipv6
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+net.ipv6.conf.lo.disable_ipv6=1
+
+使配置生效
+sudo sysctl -p /etc/sysctl.conf
+或重启计算机
+
+------------------------------------------替换无线网卡驱动------------------------------------------
+
+查看内置网卡设备信息
+lspci -vvnn | grep -A 9 Network
+
+查看USB网卡信息
+usb-devices
+
+DELL Latitude笔记本使用BCM4313网卡，须使用 wl 或 brcm80211 驱动（ b43 驱动不支持 14e4:4727 ），ubuntu系统自带的 wl (bcmwl-kernel-source)驱动有问题，连上无线导致死机，建议改用 bcma-pci-bridge
+
+------------------------------------------Ubuntu Server设置固定IP------------------------------------------
+
+sudo vim /etc/network/interfaces
+范例设置如下
+auto eth0
+iface eth0 inet static
+     address            192.168.1.10
+     netmask            255.255.255.0
+#     network            192.168.1.0
+#     broadcast          192.168.1.255
+     gateway            192.168.1.1
+     dns-nameservers    208.67.222.222 8.8.8.8
+     metric             1
+
+auto [interface] 表示开机启动这块网卡
+dns-nameservers 要和 gateway 一起设置才会生效
+networkmanager设置多个网络中某个网络非默认网络的方法
+单机右上角网络图标，编辑网络连接，在IPv4设置中点击路由按钮，勾选 仅将此连接用于相对应的网络上的资源
+
+参数说明如下
+auto表示开机启用该网卡
+manual表示不设置ip
+dns-nameservers 参数使用 resolvconf 产生/etc/resolv.conf
+metric表示优先级，1最高
+
+重启网络
+sudo service networking restart
+
+如果更换了dhcp服务器还需要手动更新ip
+sudo dhclient <ethX>
+
+使dhclient不修改 /etc/resolv.conf 的办法
+sudo vim /etc/dhcp/dhclient-enter-hooks.d/nodnsupdate
+添加如下
+#!/bin/sh
+make_resolv_conf(){
+    :
+}
+
+sudo chmod +x /etc/dhcp/dhclient-enter-hooks.d/nodnsupdate
+
+注：在 /etc/dhcp/dhclient.conf 配置 supersede 覆盖dns对动态网卡如softether无效，因此需使用上述方法
+
+------------------------------------------Ubuntu Server 单网卡设置多个ip------------------------------------------
+
+用 eth0:0 等方式实现，参考 http://unix.stackexchange.com/a/178794
+
+
+------------------------------------------Ubuntu Server 桥接网卡------------------------------------------
+
+sudo apt-get install bridge-utils
+
+桥接两块网卡
+
+sudo vim /etc/network/interfaces
+修改如下
+auto lo
+iface lo inet loopback
+
+iface eth0 inet manual
+
+iface eth1 inet manual
+
+auto br0
+iface br0 inet dhcp
+  bridge_ports eth0 eth1
+
+重启系统使网络配置生效
+
+桥接一块网卡
+sudo vim /etc/network/interfaces
+修改如下
+auto eth0
+iface eth0 inet manual
+auto br0
+iface br0 inet static
+    address 192.168.10.40
+    netmask 255.255.255.0
+    network 192.168.10.0
+    broadcast 192.168.10.255
+    gateway 192.168.10.1
+    dns-nameservers 8.8.8.8 106.186.17.181
+    bridge_ports eth0
+    bridge_stp on
+    bridge_maxwait 0
+
+重启系统后生效
+
+------------------------------------------修改网卡对应eth编号------------------------------------------
+
+sudo rm /etc/udev/rules.d/70-persistent-net.rules
+或者
+sudo vim /etc/udev/rules.d/70-persistent-net.rules
+# PCI device 0x10de:0x054c (forcedeth)
+#SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="11:22:33:44:55:66", ATTR{type}=="1", KERNEL=="eth*", NAME="eth0"
+
+重启后生效
+
+------------------------------------------Ubuntu Desktop重启网络------------------------------------------
+
+sudo service network-manager restart
+
+------------------------------------------安装字体------------------------------------------
+
+ubuntu 14.04 默认字体为 DroidSans Fallback
+
+列出所有字体
+fc-list
+
+安装字体到当前用户目录
+双击字体，点击安装
+安装的位置为：
+~/.local/share/fonts/
+
+安装字体到系统文件夹
+sudo mv [font-dir] /usr/share/fonts
+sudo chmod -R 755 /usr/share/fonts/[font-dir]
+sudo fc-cache -f -v
+
+删除ubuntu默认的字体设置
+sudo rm /etc/fonts/conf.d/65-*
+
+设置用户的字体（ 重启系统后会变成实际软链接到 ~/.config/fontconfig/fonts.conf
+vim ~/.fonts.conf
+
+内容参考 noto-sans.conf
+
+设置系统字体
+sudo vim /etc/fonts/conf.d/64-noto-sans.conf
+
+内容同上
+
+退出系统并重新登录
+
+安装字体到用户目录
+思源黑体由Adobe和Google合作推出，Google分发的字体名叫Noto Sans
+注：现在可以从仓库安装
+sudo apt-get install fonts-noto
+参考 http://ingramchen.io/blog/2014/07/ubuntu-noto-font.html
+cd ~/Downloads
+aria2c http://www.google.com/get/noto/pkgs/Noto-hinted.zip
+unzip Noto-hinted.zip
+mkdir -p ~/.fonts/noto
+mv *.otf ~/.fonts/noto
+rm *.ttf
+
+编程建议使用 Iosevka 字体
+
+cd ~/Downloads
+wget -O fonts.conf https://gist.githubusercontent.com/ingramchen/21533bbfc0d2dead94a7/raw/c750592f750cb446f6a6a19d75892c7d2fb5395f/gistfile1.xml
+mv -i fonts.conf ~/.fonts.conf
+
+logout/login Ubuntu
+
+chrome字体设置为serif和sans
+
+------------------------------------------Chrome浏览器------------------------------------------
+
+打开默认浏览器Firefox，浏览器 http://www.google.com/intl/zh-CN/chrome/ 并下载64 bit .deb版本
+
+安装chrome依赖
+sudo apt-get install libcurl3 libxss1 libnss3-1d
+
+安装chrome
+双击下载的.deb文件进行安装
+
+解决chrome网页无声音的问题
+浏览器地址栏打开 chrome://plugins/
+禁用VLC Multimedia Plugin
+
+chrome内置的flash有中文方块问题
+打开 chrome://plugins ，点击右侧的详细信息，禁用内置的flash
+下载flash http://get.adobe.com/flashplayer
+
+------------------------------------------中文输入法------------------------------------------
+
+sudo apt-get install ubuntu-desktop ibus-pinyin
+
+ibus无法启动的解决办法
+rm -rf ~/.config/ibus
+ibus-setup
+
+
+------------------------------------------第三方软件仓库------------------------------------------
+
+添加仓库
+sudo add-apt-repository ppa:<ppa>
+sudo apt-get update
+
+删除仓库
+sudo add-apt-repository --remove ppa:<ppa>
+sudo apt-get update
+
+------------------------------------------JAVA------------------------------------------
+
+安装jdk8
+sudo add-apt-repository ppa:webupd8team/java
+sudo apt-get update
+
+注：Ubuntu 16.04 需要安装 software-properties-common
+sudo apt install software-properties-common
+
+建议翻墙，否则下载很慢
+
+sudo apt-get install oracle-java8-installer
+
+设置jdk8为默认jdk
+sudo apt-get install oracle-java8-set-default
+
+显示当前使用的jdk
+update-alternatives --list java
+
+# 切换jdk
+sudo update-alternatives --config java
+sudo update-alternatives --config javac
+sudo update-alternatives --config javaws
+sudo update-alternatives --config javah
+sudo update-alternatives --config javap
+sudo update-alternatives --config javadoc
+sudo update-alternatives --config java_vm
+sudo update-alternatives --config javafxpackager
+
+chrome 35 开始不支持linux版本的java applet插件
+
+测试applet
+https://www.java.com/zh_CN/download/installed.jsp
+
+------------------------------------------磁盘管理------------------------------------------
+
+查看磁盘分区和光驱位置等信息
+lsblk
+
+注意：虚拟机添加的磁盘要等重启后才能看到，或执行如下命令
+echo "- - -" > /sys/class/scsi_host/host0/scan
+
+查看磁盘分区的文件系统和UUID
+sudo blkid
+
+添加新磁盘（插入移动硬盘或者U盘
+查看可用的磁盘
+lsblk
+或
+sudo fdisk -l|grep Disk\ /dev
+
+磁盘分区
+sudo fdisk <disk>
+n
+p
+1
+第一块选择默认
+最后块/加块/加容量（默认为使用整个磁盘空间）
+w
+
+格式化分区
+sudo mkfs.ext4 /dev/sdb1
+
+创建挂载点
+sudo mkdir /mnt/data
+
+修改操作系统启动时挂载的磁盘
+sudo vim /etc/fstab
+添加如下一行
+/dev/sdb1    /mnt/data    ext4    defaults    0    0
+
+查看支持的文件系统
+man mount
+
+挂载ntfs格式的驱动为ntfs
+#Windows-Partition
+UUID=<xxxxx> /mnt/d ntfs rw,auto,users,exec,nls=utf8,umask=003,gid=46,uid=1000    0   0
+
+挂载exfat格式的驱动为exfat-fuse
+
+挂载磁盘
+sudo mount /mnt/data
+
+挂载U盘/移动硬盘
+Ubuntu Desktop会自动挂载，默认挂载位置为 /media/$USER （$USER为当前用户如jiudao
+Ubuntu Server版需要手动挂载
+
+sudo fdisk -l | grep Disk\ /dev
+查看移动硬盘信息，例：/dev/sdb1            2048  1953521663   976759808    7  HPFS/NTFS/exFAT
+
+创建挂载点
+sudo mkdir /media/usb
+
+安装exfat文件系统支持
+sudo apt-get install exfat-fuse
+
+安装exfat分区工具
+sudo apt-get install exfat-utils
+
+临时挂载NTFS磁盘
+sudo mount -t ntfs /dev/sdb1 /media/usb
+
+临时挂载exfat磁盘
+sudo mount -t exfat /dev/sdb1 /media/usb
+
+挂载CD
+sudo mount /dev/cdrom /media/cdrom
+
+------------------------------------------LVM 磁盘管理------------------------------------------
+
+Ubuntu server安装时默认使用LVM
+Guided - use entire disk and set up LVM
+
+显示LVM PV
+sudo pvdisplay
+
+== 新增加两块块磁盘用于LVM管理 ==
+sudo fdisk -l | grep Disk\ /dev
+查看硬盘位置如 /dev/sdb , /dev/sdc
+
+sudo fdisk /dev/sdb
+按 n 创建一个新的磁盘分区
+按 p 创建一个主分区
+按 1 表示将该分区作为第一个分区
+按 回车 两次表示使用整个磁盘作为一个磁盘分区
+按 t 改变默认的分区类型(83 Linux)为LVM分区类型(8e Linux LVM)
+按 p 显示这块磁盘的分区设置
+按 w 写入分区表并退出fdisk
+
+sudo fdisk /dev/sdc
+重复上述步骤
+
+创建 LVM physical volume (PV)
+注意 pvcreate 会删除磁盘上所有数据
+sudo pvcreate /dev/sdb1
+sudo pvcreate /dev/sdc1
+
+创建 LVM volume group (VG)
+sudo vgcreate -s 16M vg0 /dev/sdb1 /dev/sdc1
+
+显示 LVM volume group (VG)
+sudo vgdisplay
+记住Total PE值
+
+创建 LVM logical volume (LV)
+sudo lvcreate -l [total-pe] -n lvol0 vg0
+
+lvcreate命令会创建一个软链接 /dev/vg0/lvol0 指向 /dev/mapper/vg0-lvol0
+
+格式化逻辑分区 lvol0
+sudo mkfs.ext4 /dev/vg0/lvol0
+
+创建挂载点
+sudo mkdir /mnt/vfs
+
+手动挂载逻辑分区
+sudo mount -t ext4 /dev/vg0/lvol0 /mnt/vfs
+
+设置开机自动挂载
+sudo vim /etc/fstab
+添加如下
+/dev/vg0/lvol0    /mnt/vfs    ext4    defaults    0    0
+
+== 新增一块硬盘到现有的 LVM ==
+
+如果该磁盘有数据则用 rsync 工具先将数据拷贝到 LVM 或其他磁盘
+umount该磁盘
+sudo vim /etc/fstab
+取消自动挂载该磁盘
+
+如果这是一块新硬盘，先给这块硬盘创建分区，分区类型改为(8e Linux LVM)，步骤同上
+
+创建 LVM physical volume (PV)
+sudo pvcreate /dev/sdX1
+
+sudo vgdisplay
+记住vg名字
+
+将 LVM physical volume (PV) 添加到现有的 LVM volume group (VG)
+sudo vgextend [vg-name] /dev/sdX1
+
+sudo lvdisplay
+记住lv名字
+
+扩充 LVM logical volume (LV) 容量
+sudo lvresize -l +100%FREE  [lv-name]
+
+扩充文件系统的空间
+sudo resize2fs  [lv-name]
+
+== 扩充LVM分区，填满磁盘剩余空间 ==
+参考 http://ryandoyle.net/posts/expanding-a-lvm-partition-to-fill-remaining-drive-space/
+备份数据，磁盘管理很容易误操作丢失数据
+#关闭系统并用Ubuntu Server系统光盘进入Rescue系统，不挂载任何分区（也可以用Ubuntu Desktop光盘进入Live系统
+
+fdisk /dev/vda
+删除需要扩充容量的分区并重新添加
+如下是删除并重新添加主分区的例子（删除并重新添加扩展分区和逻辑分区的步骤以此类推
+Command (m for help): p
+
+Disk /dev/sda: 42.9 GB, 42949672960 bytes
+255 heads, 63 sectors/track, 5221 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+
+Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1          13      104391   83  Linux
+/dev/sda2              14        5221    41833260   8e  Linux LVM
+
+Command (m for help): d
+Partition number (1-4): 2
+
+Command (m for help): n
+Command action
+e   extended
+p   primary partition (1-4)
+p
+Partition number (1-4): 2
+First cylinder (14-5221, default 14):
+Using default value 14
+Last cylinder or +size or +sizeM or +sizeK (14-5221, default 5221):
+Using default value 5221
+
+Command (m for help): t
+Partition number (1-4): 2
+Hex code (type L to list codes): 8e
+Changed system type of partition 2 to 8e (Linux LVM)
+
+Command (m for help): w
+
+重启系统
+
+sudo pvresize [pv-name]
+
+sudo lvdisplay
+记住LV路径
+
+扩充 LVM logical volume (LV) 容量
+sudo lvresize -l +100%FREE [lv-name]
+
+扩充文件系统的空间
+sudo resize2fs [lv-path]
+
+== 缩小LVM卷 ==
+
+缩小根分区需要用boot cd，缩小普通分区直接unmount就好
+
+确保逻辑卷可用，大部分boot cd会做这个工作，不过再运行一次不会影响系统
+vgchange -a y
+
+强制检查卷
+e2fsck -f /dev/polar/root
+
+缩小文件系统
+resize2fs /dev/polar/root 180G
+
+缩小 LV
+lvreduce -L 200G /dev/polar/root
+
+扩充文件系统
+resize2fs /dev/polar/root
+
+------------------------------------------压缩/解压缩------------------------------------------
+
+unzip用法
+unzip -d <directory> <archive.zip>
+
+sudo apt-get install p7zip-full
+
+7z压缩
+7z a test.7z dir -mhe -p
+
+7z解压缩
+7z x test.7z
+
+gzip压缩
+gzip -9 [file]
+
+参数说明
+-si    Read  data  from StdIn (eg: tar cf - directory | 7z a -si direc‐tory.tar.7z)
+-so    Write data to StdOut (eg: % echo foo | 7z a dummy -tgzip -si -so > /dev/null)
+-t7z   7z archive
+-v{Size}[b|k|m|g]
+       Create volumes（multipart 7zip file
+-p{Password}
+       Set Password
+-mhe
+  加密文件列表
+
+tar解压缩
+tar xvf FileName.tar
+tar zxvf FileName.tar.gz
+tar jxvf FileName.tar.bz2
+tar Jxvf FileName.tar.xz
+
+解压缩到指定的目录
+tar xzvf filename.tar.gz -C /specified_dir
+解压缩并忽略第一层文件夹
+tar --strip-components=1 xzvf filename.tar.gz -C specified_dir
+
+tar压缩
+tar zcvf FileName.tar.gz dir
+
+gunzip file.gz
+gzip -d file.gz
+
+注：gunzip解压缩后会自动删除.gz文件
+
+解压缩gz文件并查看文本内容的方法
+gunzip -c x.txt.gz >x.txt
+或
+zcat x.txt.gz >x.txt
+
+------------------------------------------备份文件夹------------------------------------------
+
+cd /usr/local/nagios/
+sudo tar -czvf ~/nagios_etc_backup.tar.gz etc/
+
+------------------------------------------下载工具------------------------------------------
+
+http: wget, aria2
+ftp: filezilla
+bt: transmission, deluge
+
+从仓库中安装这些软件（版本略低
+sudo apt-get install aria2 transmission deluge
+
+添加 transmission的ppa源（ppa仓库比官方仓库版本更新一点
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:transmissionbt/ppa
+sudo apt-get update
+
+------------------------------------------防arp攻击------------------------------------------
+
+目前没有发现linux下免费的arp防火墙，只有通过绑定网关ip和物理地址来防范arp攻击，用法如下：
+查看arp表
+arp -a
+删除网关的arp记录
+arp -d 192.168.1.1
+arp -s 网关IP地址 网关物理地址
+sudo arp -s 192.168.1.1 00:02:B3:38:08:62
+开机自动绑定网关的物理地址，将上述命令拷贝到 /etc/rc.d/rc.local 里
+
+------------------------------------------恢复被windows破坏的grub------------------------------------------
+
+用livecd或者用usb移动硬盘上的ubuntu
+sudo -s
+mount /dev/sda3 /mnt
+#mount /dev/sda2 /mnt/boot #skip this one if not have a separate /boot partition
+grub-install --root-directory=/mnt/ /dev/sda
+
+更新grub菜单
+sudo gedit /etc/default/grub
+sudo update-grub
+
+解决缺少windows等grub问题
+sudo add-apt-repository ppa:yannubuntu/boot-repair && sudo apt-get update
+sudo apt-get install -y boot-repair && boot-repair
+
+------------------------------------------linux 文件系统修复------------------------------------------
+
+先尝试重新启动
+谨慎使用
+重启系统,在grub界面进入recovery mode
+fsck -y
+
+------------------------------------------查看ubuntu系统/硬件信息------------------------------------------
+
+查看系统版本是32位还是64位
+uname -m
+x86_64 ==> 64-bit kernel
+i686   ==> 32-bit kernel
+或
+arch
+或
+getconf LONG_BIT
+
+查看系统信息
+uname -a
+
+查看内核发行号
+uname -r
+
+查看ubuntu的内核版本和发行版本号
+lsb_release -a
+
+查看加载的模块
+lsmod
+
+查看cpu
+cat /proc/cpuinfo
+
+查看内存
+cat /proc/meminfo
+
+查看pci插槽信息
+lspci
+
+查看usb接口的设备信息
+lsusb
+
+查看显卡
+lspci | grep VGA
+
+------------------------------------------chown 用法------------------------------------------
+
+chown -R [user:group] path
+
+注意若path是软链接，那么结尾要有 / ，否则只修改目录
+
+------------------------------------------head 用法------------------------------------------
+
+查看前10行文字
+
+head <filename>
+
+常用参数
+-c, --bytes=[-]K    指定字节数
+-n, --lines=[-]K    指定行数
+
+------------------------------------------tail 用法------------------------------------------
+
+查看后10行文字
+
+tail <filename>
+
+-c, --bytes=K   指定字节数
+-n, --lines=[-]K    指定行数
+-f, --follow[={name|descriptor}]
+    output appended data as the file grows;
+
+    an absent option argument means 'descriptor'
+
+-F     same as --follow=name --retry
+
+碰到使用Log4j RollingFileAppender的日志，tail 需要使用 -F 参数来看日志，否则log4j重命名日志文件后tail会退出
+
+------------------------------------------查看系统状态------------------------------------------
+
+查看硬件信息
+sudo lshw
+常用参数
+-c memory   只看内存
+-short  显示简短信息
+
+查看内存使用率
+free
+
+查看磁盘空间使用率
+df -h
+
+查看磁盘文件数量限制
+df -i
+
+查看文件/文件夹被哪些程序使用
+fuser -v -mu $HOME
+
+lsof -u root
+查root用了哪些东西
+
+查看网关地址
+route
+
+查看磁盘 IO ， 详见 http://xmodulo.com/2013/04/how-to-monitor-disk-io-in-linux.html
+
+Monitor disk I/O on per-process basis
+sudo apt-get install iotop
+sudo iotop
+
+Monitor disk I/O on per-disk basis
+sudo apt-get install sysstat
+sudo iostat -z -m <update_interval_in_seconds>
+参数说明：
+  -c	Show CPU utilization
+	-d	Show device utilization
+	-t	Print current time
+	-z	Omit devices with no activity
+	-k	Use kb/s
+	-m	Use Mb/s
+
+查看磁盘坏道
+sudo badblocks -sv /dev/sdb3
+
+VirtualBox可能使整个系统崩溃，也可能使挂载的NTFS文件系统崩溃，出现如下提示
+Transport endpoint is not connected
+
+解决办法：重启系统
+
+查看系统启动输出日志（如插入的USB网卡信息
+tailf /var/log/boot.log
+
+查看kernel ring buffer
+dmesg | less
+
+查看系统日志
+sudo less /var/log/syslog
+
+------------------------------------------设置环境变量------------------------------------------
+
+以下几个文件可以设置环境变量（PATH）
+/etc/profile
+/etc/environment（不要添加除PATH外的环境变量，会导致无法进入系统）
+/etc/bash.bashrc
+~/.bashrc
+
+退出系统再登录后生效
+
+------------------------------------------共享库设置------------------------------------------
+
+添加shared library库位置
+sudo vim /etc/ld.so.conf.d/libc.conf
+添加一行
+include /usr/local/lib
+
+重新加载共享库
+sudo ldconfig
+
+编译库后要执行sudo ldconfig，否则会出现找不到.so库的情况
+
+------------------------------------------cron定时任务------------------------------------------
+
+参考 https://wiki.archlinux.org/index.php/cron
+
+不发送邮件，在定时任务后添加如下
+ > /dev/null 2>&1
+
+禁用cron发送邮件（测试没有效果，还是会提示无法找到 /etc/postfix/main.cf
+在 /etc/crontab 第一行添加如下
+MAILTO=""
+
+sudo vim /etc/crontab
+定时任务例子
+# m h dom mon dow user  command
+17 *    * * *   root    echo Hello, world!
+*/5 *    * * *   root    echo Hello, world!
+
+记录cron日志
+sudo vim /etc/rsyslog.d/50-default.conf
+取消注释如下一行
+#cron.*              /var/log/cron.log
+
+sudo service rsyslog restart
+
+------------------------------------------file 用法------------------------------------------
+
+file [-bchikLnNprsvz] [-f namefile] [-F separator] [-m magicfiles] file
+     file -C [-m magicfile]
+
+查看文本文件的编码
+file -i [filename]
+
+------------------------------------------修改locale------------------------------------------
+
+查看locale
+locale
+
+查看当前编码
+locale charmap
+
+显示可用的locales
+locale -a
+C和POSIX都是fall-back，ASCII编码
+
+显示可用的编码
+locale -m
+
+解决LC_ALL没有设置的问题
+sudo vim /etc/default/locale
+修改如下
+LANG="en_US.UTF-8"
+LANGUAGE="en_US:en"
+LC_ALL="en_US.UTF-8"
+LC_NUMERIC="zh_CN.UTF-8"
+LC_TIME="zh_CN.UTF-8"
+LC_MONETARY="zh_CN.UTF-8"
+LC_PAPER="zh_CN.UTF-8"
+LC_NAME="zh_CN.UTF-8"
+LC_ADDRESS="zh_CN.UTF-8"
+LC_TELEPHONE="zh_CN.UTF-8"
+LC_MEASUREMENT="zh_CN.UTF-8"
+LC_IDENTIFICATION="zh_CN.UTF-8"
+
+mac ssh登录需要设置LC_CTYPE
+LC_CTYPE="en_US.UTF-8"
+
+退出系统并重新登录
+
+generate the missing locale and reconfigure locales to take notice
+sudo locale-gen "en_US.UTF-8"
+sudo dpkg-reconfigure locales
+
+locale -a 可以看到产生的 en_US.UTF-8
+
+------------------------------------------iconv 用法------------------------------------------
+
+转换编码
+iconv [-cs] -f frommap -t tomap [file ...]
+常用参数
+-l, --list                 列举所有已知的字符集
+-c     Omit any characters that are invalid in the codeset of the input
+              file from the output.
+-f  fromcodeset
+              Identify the codeset of the input file.
+-t  tocodeset
+              Identify  the codeset to be used for the output file.
+
+示例
+iconv -f gb18030
+
+或使用如下方法
+recode UTF-8 [filename]
+
+------------------------------------------convmv 用法------------------------------------------
+参数
+       -f ENCODING
+           specify the current encoding of the filename(s) from which should
+           be converted
+
+       -t ENCODING
+           specify the encoding to which the filename(s) should be converted
+
+       -i  interactive mode (ask y/n for each action)
+
+       -r  recursively go through directories
+
+       --nfc
+           target files will be normalization form C for UTF-8 (Linux etc.)
+
+       --nfd
+           target files will be normalization form D for UTF-8 (OS X etc.).
+
+       --notest
+           Needed to actually rename the files. By default convmv will just
+           print what it wants to do.
+
+示例
+convmv -f latin1 -t utf-8 -r --exec "echo #1 should be renamed to
+           #2" path/to/files
+
+------------------------------------------编译安装应用程序------------------------------------------
+
+安装编译软件
+sudo apt-get -y install build-essential checkinstall autoconf libtool
+
+以编译aria2源代码为例
+安装aria2依赖库
+sudo apt-get install g++ libssl-dev libxml2-dev libsqlite3-dev zlib1g-dev libc-ares-dev metalink
+
+下载aria2源代码
+
+编译安装
+./configure
+make
+sudo make install
+
+注：安装软件到指定位置需要在 ./configure 添加 --prefix 参数
+./configure --prefix=/somewhere/else/than/usr/local
+
+有些开源软件使用autoconf，特点是有 configure.ac 文件而没有 configure 文件
+
+autoconf使用方法
+autoscan
+aclocal
+autoconf
+automake -a
+./configure
+make
+sudo make install
+
+gcc4.9默认启用如下参数
+-Werror=date-time
+所以不要用如下两个macro
+__DATE__ , __TIME__
+
+------------------------------------------和windows系统共享文件(samba)------------------------------------------
+
+修改文件共享设置
+sudo vim /etc/samba/smb.conf
+在global块添加如下
+usershare owner only = false
+
+------------------------------------------查找磁盘空间不足的原因------------------------------------------
+
+Desktop可以使用Disk Usage Anylyzer（baobab，图形化工具
+sudo baobab
+
+Server版可以使用find等工具
+查找大文件
+sudo find / -size +200M -exec ls -lh {} +
+
+------------------------------------------关闭显示器------------------------------------------
+
+xset dpms force off
+
+------------------------------------------显示ssh远程的图形程序------------------------------------------
+
+ssh -X
+windows客户端需要安装xming
+
+------------------------------------------SSH登录不使用密码------------------------------------------
+
+产生 SSH Public Key （即 id_rsa.pub
+ssh-keygen -t rsa -C "<email>"
+
+快速複製 SSH Public Key 到遠端機器 authorized_keys
+ssh-copy-id <new_machine>
+
+修改ssh private key密码
+ssh-keygen -f id_rsa -p
+
+使用私钥
+ssh -i /path/to/id_rsa user@server.nixcraft.com
+
+设置host和私钥对应关系
+vim ~/.ssh/config
+示例如下
+Host server1.nixcraft.com
+  IdentityFile ~/backups/.ssh/id_dsa
+Host server2.nixcraft.com
+  IdentityFile /backup/home/userName/.ssh/id_rsa
+
+------------------------------------------SSH服务设置------------------------------------------
+
+参考 https://help.ubuntu.com/community/SSH/OpenSSH/Configuring
+停用密码登录和root登录
+sudo vim /etc/ssh/sshd_config
+修改如下
+ChallengeResponseAuthentication no
+PasswordAuthentication no
+UsePAM no
+PermitRootLogin no
+修改端口号
+Port [port]
+
+重启sshd服务
+sudo service sshd restart
+
+------------------------------------------修改hostname------------------------------------------
+
+sudo vim /etc/hostname
+范例： lunargeek
+sudo vim /etc/hosts
+范例：
+127.0.0.1   localhost
+127.0.1.1   lunargeek.com
+
+hostname输出结果： lunargeek
+hostname -f输出结果： lunargeek.com
+
+sudo service hostname restart
+
+------------------------------------------改变terminal输出------------------------------------------
+
+重定向terminal输出
+command > /tmp/test.log 2>&1
+
+丢弃terminal输出
+command > /dev/null 2>&1
+
+File descriptor 1 is the standard output (stdout).
+File descriptor 2 is the standard error (stderr).
+
+2>&1 即表示将标准错误重定向到标准输出
+
+------------------------------------------Ubuntu Server设置代理------------------------------------------
+
+wget, curl 等应用软件会从 http_proxy 等环境变量读取代理设置
+
+export http_proxy=http://[ip]:[port]
+export https_proxy=http://[ip]:[port]
+export ftp_proxy=http://[ip]:[port]
+
+上述几行可以缩到一行
+export all_proxy=http://[ip]:[port]
+
+取消这些环境变量
+unset http_proxy
+unset https_proxy
+
+------------------------------------------修改apt-get仓库源------------------------------------------
+
+改apt-get源
+sudo vim /etc/apt/sources.list
+
+# 北陸先端科学技術大学院大学 （靠谱
+:%s/http:\/\/cn.archive.ubuntu.com\/ubuntu\//http:\/\/ftp.jaist.ac.jp\/pub\/Linux\/ubuntu\//g
+
+# KDDI研究所
+:%s/http:\/\/cn.archive.ubuntu.com\/ubuntu\//http:\/\/www.ftp.ne.jp\/Linux\/packages\/ubuntu\/archive\//g
+
+# 富山大学
+:%s/http:\/\/cn.archive.ubuntu.com\/ubuntu\//http:\/\/ubuntutym.u-toyama.ac.jp\/ubuntu\//g
+
+# 台湾源
+:%s/http:\/\/cn.archive.ubuntu.com\/ubuntu\//http:\/\/tw.archive.ubuntu.com\/ubuntu\//g
+
+# 美国源
+:%s/http:\/\/cn.archive.ubuntu.com\/ubuntu\//http:\/\/us.archive.ubuntu.com\/ubuntu\//g
+
+刷新apt-get本地缓存
+sudo apt-get update
+
+退出vim
+
+刷新软件仓库缓存
+sudo apt-get update
+
+------------------------------------------echo 用法------------------------------------------
+
+-e: 允许使用转义符 ( \ )
+
+或者使用 printf
+
+------------------------------------------终端查看文件------------------------------------------
+
+cat：适合小文件，会把所有内容输出到终端
+more/less：适合查看大文件，可以使用“/”搜索内容
+less中用 / 搜索，忽略大小写加 -i 参数
+
+more能正确显示中文，less则不能（该问题在LC_ALL=C时出现
+
+------------------------------------------ls 用法------------------------------------------
+
+常用参数
+-l  显示文件详细信息
+-h  显示文件大小（自动显示KB, MB, GB等）
+-R, --recursive		递归显示子目录
+-tr 按最近时间排序
+-Sr  按文件大小排序
+--time-style=STYLE   显示详细的时间（一般使用long-iso即可
+with -l, show times using style STYLE: full-iso, long-iso,  iso,
+              locale,  or  +FORMAT;  FORMAT  is interpreted like in 'date'; if
+              FORMAT  is  FORMAT1<newline>FORMAT2,  then  FORMAT1  applies  to
+              non-recent  files  and FORMAT2 to recent files; if STYLE is pre‐
+              fixed with 'posix-', STYLE takes effect only outside  the  POSIX
+              locale
+
+
+------------------------------------------mv 用法------------------------------------------
+
+移动隐藏文件
+mv dir/.[^.]* newdir
+
+------------------------------------------终端添加文本到文件------------------------------------------
+
+echo deb http://apt.newrelic.com/debian/ newrelic non-free | tee /etc/apt/sources.list.d/newrelic.list
+
+写一行文字到文件
+echo hello | tee test.txt
+
+写多行文字到文件，添加 --append 参数则在文件末尾附加文本而不是覆盖
+tee /etc/myconfig.conf <<EOF
+  line 1, ${kernel}
+  line 2,
+  line 3, ${distro}
+  line 4 line
+  ...
+EOF
+
+如下方式不能配合sudo使用
+>>在文件末尾添加文本
+>覆盖文件
+
+------------------------------------------wget 用法------------------------------------------
+
+下载整站文件
+wget -r -np <url>
+
+断点续传
+-c
+
+------------------------------------------ssh 用法------------------------------------------
+
+ssh [user@]<ip>
+
+如果当前用户名和服务器的用户名一致可以省略[user@]
+常用参数
+-p port
+-D [bind_address:]port
+
+-D参数：在本机开启socks代理
+
+------------------------------------------mosh 用法------------------------------------------
+
+在网络时断时续的环境中使用mosh替代ssh（服务器和客户端都要安装）
+sudo apt-get install mosh
+
+mosh通过ssh端口登录，然后在UDP端口60000和61000之间任一端口开启连接
+mosh --ssh="ssh -p 2222" <ip-or-domain>
+
+------------------------------------------bg, fg, jobs, nohup 用法------------------------------------------
+
+中断运行的程序
+ctrl+z
+
+恢复后台运行的程序
+bg
+
+查看后台运行的程序
+jobs
+
+将后台运行的程序挪到前台
+fg
+
+后台有多个程序，只挪其中一个的方法如下
+fg %1
+
+杀掉后台程序
+kill %2
+
+后台运行程序
+nohup command > /dev/null 2>&1 &
+
+将正在运行的程序放到后台
+暂停程序
+Ctrl+Z
+终端会显示<job-id>
+使程序在后台运行
+bg <job-id>
+使用户退出后程序继续运行
+disown %<job-id>
+
+注：上面的命令若不加 job-id 参数，则会把最后一个job的id作为参数
+
+sudo 和 nohup 一起用的方法
+nohup sudo command > /dev/null 2>&1
+注意上面最后不加 & 
+按提示输入密码
+ctrl + z 中断程序
+输入 bg 恢复后台运行的程序
+disown
+
+------------------------------------------screen 用法------------------------------------------
+
+主要用来ssh连接到远程服务器后运行程序，即使连接中断也能保持程序运行
+参考 http://www.rackaid.com/blog/linux-screen-tutorial-and-how-to/
+
+服务器安装screen
+sudo apt-get install screen
+
+ssh连接到服务器
+screen
+
+回车即可使用，不必新建一个 window
+
+显示所有窗口列表
+Ctrl-a  w
+
+创建 window
+Ctrl-a  c
+
+切换 window
+下一个 window
+Ctrl-a n
+上一个 window
+Ctrl-a  p
+
+Detaching From Screen
+If your network connection fails, screen will automatically detach your session!
+Ctrl-a d
+
+Reattach to Screen
+screen -d -r
+注：-d参数detach其他地方运行的screen session，和在screen终端Ctrl-a d有同样效果
+
+上述命令选择一个screen的方法
+screen -d -r [pid]
+
+显示screen列表
+screen -list
+
+停止screen
+exit
+
+销毁当前window
+ C-a k
+
+将运行中的程序挪到 screen 的步骤
+参考 http://monkeypatch.me/blog/move-a-running-process-to-a-new-screen-shell.html
+安装 reptyr
+sudo apt-get install reptyr
+
+修改系统参数
+sudo vim /etc/sysctl.d/10-ptrace.conf
+修改如下
+kernel.yama.ptrace_scope = 0
+
+使上述参数生效（该命令临时生效，上述修改的配置在重启后生效
+sudo sysctl -p /etc/sysctl.d/10-ptrace.conf
+
+中断运行的程序
+ctrl-z
+
+恢复后台的程序
+bg
+
+detach the process
+disown [proces]
+
+launch a screen
+screen
+
+retrieve the process
+reptyr [pid]
+
+也可以不用记pid，用如下命令替代
+reptyr $(pgrep [process])
+
+------------------------------------------scp 用法------------------------------------------
+
+下载
+scp <username>@<ip>:<filepath> .
+
+上传
+scp <dir> <username>@<ip>:<dir>
+
+------------------------------------------grep 用法------------------------------------------
+
+特殊符号用\转义，并用单引号包含字符串如：
+nmap --help|grep '\-v'
+
+-i, --ignore-case
+              Ignore  case  distinctions  in  both  the  PATTERN and the input
+              files.  (-i is specified by POSIX.)
+-n, --line-number
+              Prefix  each  line of output with the 1-based line number within
+              its input file.  (-n is specified by POSIX.)
+-c, --count
+              Suppress normal output; instead print a count of matching  lines
+              for  each  input  file.  With the -v, --invert-match option (see
+              below), count non-matching lines.  (-c is specified by POSIX.)
+-o, --only-matching
+              Print  only  the  matched  (non-empty) parts of a matching line,
+              with each such part on a separate output line.
+
+-v, --invert-match select non-matching lines
+
+-L, --files-without-match only print FILE names containing no match
+-l, --files-with-matches  只打印匹配FILES 的文件名
+
+grep "^GNU" <filename>
+
+------------------------------------------find 用法------------------------------------------
+
+不区分大小写
+find . -iname <name>
+
+忽略粗误信息
+find . 2>/dev/null
+
+查找2天前修改的文件
+find . -mtime 2
+
+查找最近2天修改的文件
+find . -mtime -2
+
+查找最近2天修改的文件并压缩
+find . -mtime -2 | xargs tar -czvPf /opt/older_log_$(date +%F).tar.gz
+
+搜索文件中的内容
+find . -type f -name "*.[ch]" -exec grep -i -H "<search pharse>" {} +
+
+或者用grep命令
+grep -r "redeem reward" /home/tom/
+
+注：上述命令在fish shell中需要用单引号包裹{}
+
+查找多个后缀的文件
+find . -name "*.h" -or -name "*.cpp"
+
+注： -or 参数可以缩写成 -o ，-and 参数可以缩写成 -a
+
+排除目录
+-not -path "*def/incoming*": don't include anything with def/incoming as part of its path
+
+查看多个日志
+find . -name '*.log' | xargs tail -F
+
+-print0表示输出以null分隔
+-print表示输出以换行分隔
+-type c
+              File is of type c:
+
+              b      block (buffered) special
+
+              c      character (unbuffered) special
+
+              d      directory
+
+              p      named pipe (FIFO)
+
+              f      regular file
+
+              l      symbolic link; this is never true if the -L option or the -follow option is in effect, unless the symbolic link is broken.  If you want to search for symbolic links when -L is in
+                     effect, use -xtype.
+
+              s      socket
+
+              D      door (Solaris)
+
+查找程序pid并杀死
+for pid in $(ps -ef | awk '/some search/ {print $2}'); do kill -9 $pid; done
+
+注：awk中搜索关键词或grep搜索关键词任一字母用中括号包含，可以过滤grep程序本身
+
+------------------------------------------tr 用法------------------------------------------
+
+将多行文字合并成一个字符串，用逗号分隔
+ls -1 | tr '\n' ','
+
+------------------------------------------xargs 用法------------------------------------------
+
+Linux 2.6.23以前的版本，长列表参数不能传递给命令，xargs将参数列表分成多个子列表
+
+find /path -type f -print | xargs rm
+
+注：如上命令等同如下
+find /path -type f -exec rm '{}' +
+
+------------------------------------------rsync 用法------------------------------------------
+
+文件拷贝显示进度，用rsync替代cp
+rsync -avP /source/data/ /destination/
+参数说明
+-a, --archive               archive mode; equals -rlptgoD (no -H,-A,-X)
+-v, --verbose               increase verbosity
+    --partial               keep partially transferred files（即支持断点续传）
+    --progress              show progress during transfer
+-P                          same as --partial --progress
+
+------------------------------------------nc 用法------------------------------------------
+nc -4u -w1 192.168.10.35 514
+
+------------------------------------------sort 用法------------------------------------------
+
+常用参数
+-g, --general-numeric-sort  compare according to general numerical value
+-h, --human-numeric-sort    compare human readable numbers (e.g., 2K 1G)
+-n, --numeric-sort          compare according to string numerical value
+
+du -sh * | sort -h | tail
+
+------------------------------------------du 用法------------------------------------------
+
+常用参数
+-s, --summarize       display only a total for each argument
+-h, --human-readable  print sizes in human readable format (e.g., 1K 234M 2G)
+-d, --max-depth=N     print the total for a directory (or file, with --all)
+                          only if it is N or fewer levels below the command
+                          line argument;  --max-depth=0 is the same as
+                          --summarize
+
+查看最大的10个文件（或文件夹）
+du -sh * | sort -h | tail
+
+查看一個文件夾大小
+du -h --max-depth=1 <dir>
+
+------------------------------------------wc 用法------------------------------------------
+
+取行数
+wc -l
+
+------------------------------------------iproute2(ip) 用法------------------------------------------
+
+显示路由
+ip route show
+
+显示添加的路由
+ip route show proto boot
+
+查询路由
+ip route get <ip>
+
+根据选择条件显示路由
+ip route show match 150.65.7.0
+
+添加路由
+sudo route add -net 192.168.60.0 netmask 255.255.255.0 gw 10.8.0.6
+
+sudo ip route add 192.168.60.0/24 via 10.8.0.6
+
+上述命令中的子网掩码24可以改为255.255.255.0
+
+添加批量路由
+sudo ip -batch filename
+
+修改网关
+sudo ip route change default via 192.168.60.3 dev eth0
+
+sudo ip route replace default via 192.168.60.3 dev eth0
+
+删除路由
+sudo ip route del 192.168.60.0/24
+
+#保存路由
+ip route save > ip-route-saved
+
+清空添加的路由
+sudo ip route flush proto boot
+
+------------------------------------------iptables 用法------------------------------------------
+
+sudo iptables -L (List Rules)
+sudo iptables -t nat -L -n -v (List NAT Rules)
+
+转发来自10.8.0.0/24网段的数据包到eth0网络接口
+sudo iptables -t nat -A POSTROUTING -o eth0 -s 10.8.0.0/24 -j MASQUERADE
+#另一种方法使用SNAT，缺点是出口IP固定
+#sudo iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to-source <server-ip>
+
+开放端口
+sudo iptables -A INPUT -p tcp --dport 22 -i eth0 -j ACCEPT
+
+端口转发
+sudo iptables -t nat -I PREROUTING -p tcp --dport 2222 -j DNAT --to-destination 192.168.122.212:22
+
+其他的都封锁
+sudo iptables -A INPUT -i eth0 -j DROP
+
+保存/加载 iptables
+sudo iptables-save | sudo tee /etc/iptables.sav
+sudo vim /etc/rc.local
+add the following lines before the "exit 0" line:
+iptables-restore < /etc/iptables.sav
+
+------------------------------------------iperf 用法------------------------------------------
+
+服务器客户端网速测试
+服务器和客户端均安装 iperf
+sudo apt-get install iperf
+
+服务器
+iperf -s
+
+客户端
+iperf -c 服务器ip -f M
+
+参数说明
+-f, --format
+              [kmKM]   format to report: Kbits, Mbits, KBytes, MBytes
+-C, --compatibility
+              for use with older versions does not sent extra msgs
+
+------------------------------------------磁盘缓存------------------------------------------
+
+查看当前硬盘写Cache状态
+sudo hdparm -W  /dev/sda
+
+关闭硬盘的写Cache
+sudo hdparm -W  0 /dev/sda
+
+打开硬盘的写Cache
+sudo hdparm -W  1 /dev/sda
+
+------------------------------------------dd 用法------------------------------------------
+
+将磁盘镜像（img）写入磁盘（会覆盖所有数据
+sudo dd bs=16M if=path_of_your_image.img of=/dev/sdXY
+查看进度
+watch -n 5 pkill -USR1 ^dd$
+
+将磁盘转成镜像并压缩(7z)
+sudo dd if=/dev/sdXY | 7z a -t7z -si image-file.7z
+
+将磁盘镜像zip压缩包解压缩并写入磁盘，-p参数extract files to pipe (stdout)，（会覆盖所有数据
+sudo sh -c "unzip -p image-file.zip | dd of=/dev/sdXY"
+
+将磁盘镜像7z压缩包解压缩并写入磁盘，-so参数Write data to StdOut，（会覆盖所有数据
+sudo sh -c "7z x -so image-file.7z | dd of=/dev/sdXY"
+
+将磁盘镜像tar压缩包解压缩并写入磁盘，-O参数extract files to standard output，（会覆盖所有数据
+sudo sh -c "tar xvfO image-file.tar | dd of=/dev/sdXY"
+
+将磁盘镜像gz压缩包解压缩并写入磁盘，-c参数Write  output on standard output，（会覆盖所有数据
+sudo sh -c "gunzip -c image-file.gz | dd of=/dev/sdXY"
+
+磁盘性能测试
+大部分操作系统默认开启hdparm写入缓存，关闭这个缓存再测试会得到更低的数值
+
+写入性能
+机械硬盘写入速度通常为 80 MB/s ， SSD写入速度能达到 400 MB/s 以上
+dd if=/dev/zero of=dd-test bs=1G count=1 oflag=direct
+
+读取性能（ tmpfs does not support direct I/O and returns -EINVAL
+dd if=dd-test of=/dev/null bs=1G count=1
+
+磁盘延迟
+机械硬盘写入速度通常为 6 MB/s ， SSD平均写入速度能达到 8 MB/s
+dd if=/dev/zero of=dd-test2 bs=512 count=1000 oflag=direct
+
+------------------------------------------watch 用法------------------------------------------
+
+每隔一定时间（默认2秒）运行程序，用来观测结果，避免反复执行命令
+watch uptime
+
+------------------------------------------time 用法------------------------------------------
+
+计算程序运行的时间
+time test.sh
+
+------------------------------------------cut 用法------------------------------------------
+
+remove sections from each line of files
+
+-d, --delimiter=DELIM
+              use DELIM instead of TAB for field delimiter
+-f, --fields=LIST
+              select only these fields;  also print any line that contains  no
+              delimiter character, unless the -s option is specified
+
+cut -f 2 -d\' <filename>
+
+------------------------------------------awk 用法------------------------------------------
+
+awk工作流程是这样的：读入有'\n'换行符分割的一条记录，然后将记录按指定的域分隔符划分域，填充域，$0则表示所有域,$1表示第一个域,$n表示第n个域。默认域分隔符是"空白键" 或 "[tab]键",所以$1表示登录用户，$3表示登录用户ip,以此类推。
+
+Examples:
+	gawk '{ sum += $1 }; END { print sum }' file
+	gawk -F: '{ print $1 }' /etc/passwd
+
+------------------------------------------curl 用法------------------------------------------
+
+curl参数说明
+-d, --data <data>  表单参数
+--cookie  加载cookie文件或字符串
+--cookie-jar  写入cookie
+-I, --head  只获取header
+-H, --header LINE   自定义header
+-L, --location  follow redirect
+-k, --insecure  不验证证书
+-w, --write-out 格式化结果
+-s, --silent  无声或安静模式，不显示进度表和错误消息。不过仍然会输出数据，除非重定向输出，否则会输出到终端
+-D, --dump-header FILE  将 headers 写到这个文件
+-o, --output FILE   将 output 写到这个文件
+-u, --user <user:password>
+              Specify the user name and password to use for server authentication. Overrides -n, --netrc and --netrc-optional.
+
+              If you simply specify the user name, curl will prompt for a password.
+
+-I 和 -d 不能同时使用，会提示 Warning: You can only select one HTTP request!
+解决办法
+curl -s -d 'test=test' -D - -o /dev/null www.google.com
+windows版本
+curl -s -d 'test=test' -D - -o nul: www.google.com
+
+url用单引号包含起来，否则有可能会出错
+
+测量网站请求相应时间
+Create a new file, curl-format.txt, and paste in:
+
+    time_namelookup:  %{time_namelookup}\n
+       time_connect:  %{time_connect}\n
+    time_appconnect:  %{time_appconnect}\n
+   time_pretransfer:  %{time_pretransfer}\n
+      time_redirect:  %{time_redirect}\n
+ time_starttransfer:  %{time_starttransfer}\n
+                    ----------\n
+         time_total:  %{time_total}\n
+         
+Make a request:
+
+curl -w "@curl-format.txt" -o /dev/null -s "http://wordpress.com/"
+
+Or on Windows, it's...
+
+curl -w "@curl-format.txt" -o NUL -s "http://wordpress.com/"
+
+------------------------------------------alias 用法------------------------------------------
+
+alias tomcat-startup=/usr/local/tomcat/bin/startup.sh
+alias tomcat-shutdown=/usr/local/tomcat/bin/shutdown.sh
+
+------------------------------------------notify-send 用法------------------------------------------
+
+notify-send "hello world"
+
+发送到远程的桌面提醒
+ssh -X llj@192.168.10.49 "DISPLAY=:0 notify-send 'hello' 'world'"
+脚本（搭配ssh无密码登录）
+sudo vim notify.sh
+添加如下
+#!/bin/bash
+#
+#Send messages through SSH to remote hosts' notify-osd
+#
+message="$@"
+ssh -X user@host "DISPLAY=:0 notify-send $message"
+exit
+
+chmod +x notify.sh
+./notify.sh hello world
+
+------------------------------------------log_daemon_msg 用法------------------------------------------
+
+输出日志
+log_daemon_msg "Starting $DESC" "$NAME"
+
+------------------------------------------start-stop-daemon 用法------------------------------------------
+
+通常在init服务脚本中使用
+
+启动
+start-stop-daemon --start --quiet --oknodo \
+        --background --make-pidfile --pidfile /var/run/openvpn.$NAME.pid \
+        --exec $DAEMON -- $OPTARGS \
+        $DAEMONARG $STATUSARG --cd $CONFIG_DIR \
+        --config $CONFIG_DIR/$NAME.conf
+
+停止
+start-stop-daemon --stop --pidfile $PIDFILE --retry 10
+
+参数说明
+--user检查启动文件的所有人
+--chuid改变运行该程序的用户
+
+------------------------------------------nmap 用法------------------------------------------
+
+搜索局域网开放ssh登录的机器
+sudo apt-get install nmap
+nmap -p 22 --open -sV 192.168.10.1/24
+
+测试TCP端口
+sudo nmap -p 1433 -sS -P0 [ip]
+测试UDP端口
+sudo nmap -p 161 -sU -P0 [ip]
+运行结果如果STATE状态不是open则说明端口没有开启或者被iptables拦截
+
+不使用nmap的高级ping（可能被防火墙阻止）以扫描端口的方法
+加 -Pn 参数
+
+常用参数
+-A: Enable OS detection, version detection, script scanning, and traceroute
+-T<0-5>: Set timing template (higher is faster)
+-v: Increase verbosity level (use -vv or more for greater effect)
+
+------------------------------------------last 用法------------------------------------------
+
+查看用户登录记录如ssh, pptp
+last llj | grep ppp
+
+------------------------------------------write/wall 用法------------------------------------------
+
+write 用于向已登录系统的某个用户发送信息，wall可以向所有登录系统的用户发送信息
+echo hello|write jiudao
+echo world|wall
+
+------------------------------------------kill 用法------------------------------------------
+
+查看可以发送的信号列表
+kill -l
+
+0   查看进程是否运行
+9   SIGKILL 强制杀进程
+15  SIGTERM
+
+例子
+kill -0 <process-id>
+
+------------------------------------------ln 用法------------------------------------------
+
+ln -s [source] [target]
+
+结果
+[target] -> [source]
+
+------------------------------------------显示在线用户------------------------------------------
+
+who
+
+------------------------------------------phoronix-test-suite 用法------------------------------------------
+
+Linux性能测试
+
+安装 phoronix-test-suite
+sudo apt-get install phoronix-test-suite
+
+该程序主要是终端方式，也有web方式
+
+显示可用测试
+phoronix-test-suite list-available-tests
+
+显示可用 test suite
+phoronix-test-suite list-available-suites
+
+常用测试
+pts/cpu
+pts/memory
+pts/disk
+pts/motherboard
+pts/multicore
+pts/network
+pts/server
+pts/java
+pts/cryptography
+
+批量测试需要先配置
+phoronix-test-suite batch-setup
+
+批量测试
+phoronix-test-suite batch-benchmark pts/cpu pts/memory pts/disk
+
+------------------------------------------shell 语法------------------------------------------
+
+参考 shell.txt
+
+------------------------------------------查看网络连接------------------------------------------
+
+ss 比 netstat 快
+
+查看网络端口使用情况如ssh端口
+sudo netstat -anoptl|grep :22
+
+查看网络连接数
+cat /proc/net/sockstat{,6}
+
+查看哪些程序在使用网络
+lsof -i
+
+查看网络连接数
+ss -s
+cat /proc/net/sockstat # ipv4
+cat /proc/net/sockstat6 # ipv6
+wc -l /proc/net/tcp
+wc -l /proc/net/tcp6
+wc -l /proc/net/udp
+wc -l /proc/net/udp6
+netstat -n -t | wc -l
+
+------------------------------------------流量监控------------------------------------------
+
+显示顺序依个人喜好
+
+jnettop 特点：根据ip实时显示网络连接的速度
+sudo apt-get install jnettop
+sudo jnettop -i ppp0
+
+ntopng 特点：根据ip实时显示网络连接的速度，自带web界面，ubuntu 14.10 以前的版本需要手动编译安装
+sudo apt-get install ntopng
+sudo vim /etc/default/ntopng
+设置INTERFACES的值
+sudo service ntopng start
+用浏览器访问 http://localhost:3000 ，用户名和密码均为admin
+
+iftop 特点：根据ip实时显示网络连接的速度，上传和下载分两行显示
+sudo apt-get install iftop
+sudo iftop -i ppp0
+
+tcptrack 特点：根据ip实时显示tcp网络连接的速度，不能很好区分下载和上传
+sudo apt-get install tcptrack
+sudo tcptrack -i eth0
+
+vnstat 特点：收集网络接口的流量统计数据
+sudo apt-get install vnstat
+过一段时间后运行
+vnstat -i eth0
+
+nethogs 特点：根据应用程序显示实时网络连接的速度
+sudo apt-get install nethogs
+sudo nethogs eth1
+
+------------------------------------------访问其他操作系统的共享文件夹------------------------------------------
+
+访问mac共享文件夹
+用文件浏览器(nautilus)访问如下地址
+afp://<ip>
+
+访问windows共享文件夹
+用文件浏览器(nautilus)访问如下地址
+smb://<ip>
+
+smb终端下载
+smbget smb://<ip>/<filepath>
+
+------------------------------------------服务脚本------------------------------------------
+
+init服务(ubuntu新版本将支持systemd，但很多服务还在使用init），会在开机时启动
+在/etc/init.d/目录下新建脚本，参考 DNSCrypt-proxy.init.txt
+/etc/init.d/[service]
+
+添加开机启动服务
+sudo update-rc.d [service] defaults
+#设置启动服务的顺序（defaults后面的数字越大越晚启动，相同数字则看英文字母顺序，即a开头的服务最先执行
+sudo update-rc.d [service] defaults 21
+
+删除自动启动的服务
+sudo update-rc.d -f [service] remove
+
+启动服务
+sudo service [service] start
+
+停止服务
+sudo service [service] stop
+
+init服务启动日志在 /var/log/boot.log
+
+------------------------------------------查看是否被防火墙拦截------------------------------------------
+
+traceroute -p <port> <host>
+
+建议用mtr替代traceroute
+
+安装mtr
+sudo apt-get install mtr
+
+mtr google.com
+
+指定端口
+--port
+
+相比traceroute，mtr的输出持续显示
+
+加 --report 参数则显示每发送10个包到一个节点的结果
+
+------------------------------------------修改ubuntu默认文件夹位置------------------------------------------
+
+Ubuntu Desktop默认文件夹（如桌面、下载、音乐等）名字使用locale的文字
+
+vim ~/.config/user-dirs.dirs
+修改文件夹的位置如下
+XDG_DESKTOP_DIR="$HOME/Desktop"
+XDG_DOWNLOAD_DIR="$HOME/Downloads"
+XDG_TEMPLATES_DIR="$HOME/Templates"
+XDG_PUBLICSHARE_DIR="$HOME/Public"
+XDG_DOCUMENTS_DIR="$HOME/Documents"
+XDG_MUSIC_DIR="$HOME/Music"
+XDG_PICTURES_DIR="$HOME/Pictures"
+XDG_VIDEOS_DIR="$HOME/Videos"
+
+重启后生效
+
+------------------------------------------磁盘空间满之后的解决步骤------------------------------------------
+
+1. 找到占用磁盘空间的文件，删除无用的文件，如果无法腾出空间就增加磁盘
+2. 重启操作系统
+
+磁盘空间满之后 /tmp 分区容量会被压缩到1m（df -h可以看到 /tmp 文件系统会变成overfolow）
+使用这个分区的软件如mysql会出现如下错误
+Error Code: 126. Incorrect key file for table '/tmp/#sql_*.MYI'; try to repair it
+
+即使腾出磁盘空间上述问题还会出现，重启操作系统后这个问题自动消失
+
+------------------------------------------解决触摸屏水平方向反向的问题------------------------------------------
+
+sudo vim /usr/share/X11/xorg.conf.d/10-evdev.conf
+找到 Identifier "evdev touchscreen catchall" ， 在下面添加一行如下
+Option "InvertX" "1"
+
+重启后生效
+
+------------------------------------------无法删除文件的解决办法------------------------------------------
+
+lsattr file.txt
+
+Output:
+
+----i------------ file.txt
+
+Above output indicates that file.txt has i attribute set on it. Become a superuser and follow the instruction mentioned here to remove a write protected file:
+
+sudo chattr -i file.txt
+sudo rm -f file.txt
+
+删除 - 开头的文件
+rm -- -foo
+
+OR
+rm ./-foo
+
+OR
+rm ./-filename
+
+------------------------------------------防止ssh暴力破解的办法------------------------------------------
+
+禁用root（ubuntu默认禁用
+sudo passwd -dl root
+
+参数说明
+  -d, --delete                  delete the password for the named account
+
+  -l, --lock                    lock the password of the named account
+
+  -u, --unlock                  unlock the password of the named account
+
+注意：给root设置密码后就启用root账号了，实在需要用root权限就使用如下命令
+sudo -i
+
+安装fail2ban，参考
+http://www.fail2ban.org/
+https://github.com/fail2ban/fail2ban
+
+替换postfix和sendmail等邮件发送工具，安装msmtp和mutt，详见 msmtp_with_mutt.txt
+
+ubuntu系列可以直接安装仓库里的包
+sudo apt-get install fail2ban
+
+修改fail2ban配置
+sudo vim /etc/fail2ban/jail.conf
+修改[DEFAULT]块如下：
+修改bantime值，单位为秒，建议设置为 86400 （即一天
+修改mta值为 mail
+修改destemail值
+修改action值为 %(action_mw)s
+如果ssh不是使用默认端口还需要更改port的值
+
+修改[ssh]目录里的maxretry等值
+
+替换邮件发送程序
+sudo sed -i -e 's/mail /mutt /g' /etc/fail2ban/action.d/mail*.conf
+
+修改fail2ban的日志级别
+sudo vim /etc/fail2ban/fail2ban.conf
+修改loglevel的值
+
+------------------------------------------查看硬盘通电时间------------------------------------------
+
+sudo apt-get install smartmontools
+sudo smartctl -A -d sat /dev/sdc | grep Power
+
+------------------------------------------直接输入Unicode字符------------------------------------------
+
+切换到英文输入法， 同时按 ctrl+shift+U， 然后再输入 code ， 回车或空格
+
+Hexadecimal code points
+21D2    ⇒
+2192    →
+300C    「
+300D    」
+2026    …
+33A1    ㎡
+25EF    ◯
+
+------------------------------------------远程桌面客户端------------------------------------------
+
+安装vinagre
+sudo apt-get install vinagre
+
+------------------------------------------远程桌面服务端------------------------------------------
+
+ubuntu默认vnc服务器 vino
+
+------------------------------------------命令行打开程序------------------------------------------
+
+打开浏览器
+sensible-browser <file-or-url>
+
+------------------------------------------查看内存泄漏------------------------------------------
+
+内存不足时连运行 ls 命令甚至会出现如下提示
+fork failures: Cannot allocate memory
+
+ps --sort -rss -eo rss,pid,command | head
+
+------------------------------------------gnupg 用法------------------------------------------
+
+sudo apt-get install rng-tools
+sudo rngd -r /dev/urandom
+
+gpg --gen-key
+选择默认的RSA and RSA
+选择默认的keysize 2048
+选择默认key不过期
+输入Real Name，邮箱
+记住user ID，示例如下
+Liu Lujie <qubicllj@gmail.com>
+设置密码
+
+vim temp
+输入邮箱账户密码
+cat temp | gpg --encrypt -o ~/.msmtp.gpg
+输入上述user ID并回车两次
+
+chmod 400 ~/.msmtp.gpg
+rm temp
+
+测试解密
+gpg -d ~/.msmtp.gpg
+
+其他用户解密这个文件还需要满足如下两个条件
+有这个加密文件的读权限
+添加 --homedir <.gnupg dir> 参数
+
+------------------------------------------ulimit 用法------------------------------------------
+
+查看用户进程的限制
+ulimit -a
+
+查看用户进程的打开的文件数限制
+ulimit -n
+
+修改用户进程的打开的文件数限制
+ulimit -n 4096
+
+注：上述命令临时生效
+
+sudo vim /etc/security/limits.conf
+修改如下
+* soft nofile 80000
+* hard nofile 80000
+
+退出并重新登录ssh后生效
+
+------------------------------------------crypt(3) hash------------------------------------------
+
+mkpasswd
+输入密码
+记录输出结果
+
+------------------------------------------wake on lan工具------------------------------------------
+
+sudo apt-get install wakeonlan
+
+wakeonlan <mac-address>
+添加广播地址
+wakeonlan -i 192.168.1.255 00:08:9b:c4:30:30
+默认端口 UDP 7或9
+wakeonlan -i 192.168.1.255 -p 2345 00:08:9b:c4:30:30
+
+不要安装gnome3
+
+转换 windows 换行符
+dos2unix /path/to/file
+或者
+sed -i 's/^M//g' /path/to/file
+
+下载chrome remote desktop
+http://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
+
+设置chrome remote desktop分辨率
+vim ~/.profile
+添加如下
+export CHROME_REMOTE_DESKTOP_DEFAULT_DESKTOP_SIZES=1280x800
+
+设置chrome remote desktop使用的桌面环境
+vim ~/.chrome-remote-desktop-session
+添加如下
+#!/bin/sh -x
+export DESKTOP_SESSION=ubuntu
+export XDG_CURRENT_DESKTOP=Unity
+exec /usr/sbin/lightdm-session 'gnome-session --session=ubuntu-2d'
+
+安装dropbox依赖软件
+sudo apt-get install python-gpgme
+
+更改用户密码后需要在 seahorse 更改名为 login 的密码
+
+重置 gnome keyring
+rm ~/.local/share/keyrings/login.keyring
+
+使用相同的 keyring (重置 keyring 密码但是保留 keyring 里的旧密码):
+
+1) 备份 keyring
+
+cd ~/.local/share/keyrings/
+cp login.keyring login.keyring.backup
+
+删除 login.keyring
+
+rm ~/.local/share/keyrings/login.keyring
+
+2) 在 Gnome Keyring 创建名为 "login" 的 keyring file
+
+3) 用备份的 keyring 替换新的 keyring
+
+cd ~/.local/share/keyrings/
+mv login.keyring.backup login.keyring
+
+------------------------------------------重置系统密码------------------------------------------
+
+重启进入 recovery 模式
+选择root
+挂载 / 分区
+mount -o rw,remount /
+passwd <username>
+exit
+
+选择resume重启
+
+Unity显示桌面快捷键
+Ctrl + Super + D
+
+------------------------------------------吊销中国SSL证书------------------------------------------
+
+参考 https://github.com/chengr28/RevokeChinaCerts/wiki/ReadMe_Online(Chinese_Simplified)
+sudo dpkg-reconfigure ca-certificates
+trust new certificates选择'ask'
+取消 mozilla/China_Internet_Network_Information_Center 开头的和 mozilla/CNNIC_ROOT.crt 证书
+
+Firefox需要在Preferences->advanced->certificates->view certificates里删除 China_Internet_Network_Information_Center和 cnnic证书
+
+------------------------------------------apt-get------------------------------------------
+
+subprocess installed post-removal script returned error exit status
+解决办法
+sudo vim /var/lib/dpkg/status
+remove all entries about the package and save , then try again.
+
+sudo apt-get update
+
+查看apt key
+sudo apt-key list
+如
+pub   4096R/B03E8B60 2013-03-30 [expired: 2015-03-30]
+uid                  Marek Kubica (Raspbian Signing Key) <marek@xivilization.net>
+
+刪除apt key
+sudo apt-key del B03E8B60
+
+------------------------------------------Network manager------------------------------------------
+
+设置网络连接仅连接该网络所在网段（即不修改默认路由
+网络连接->选择一个网络->IPv4设置->路由
+勾选“仅将此连接用于相对应的网络上的资源”
+
+------------------------------------------其他------------------------------------------
+
+gedit比较弱，建议用kate
+kate列编辑的方法：ctrl + shift + B
+
+ubuntu界面僵死的解决办法
+方法1
+按住 Alt 和 the SysReq (Print Screen) 按键, 输入 REISUB
+
+方法2
+找另一台电脑，ssh到ubuntu，运行如下命令
+sudo service lightdm restart
+
+方法3
+强制重启电脑
+
+启动后无法进入GUI界面并提示如下
+Error initializing authority: Could not connect: No such file or directory (g-io-error-quark,Hangup
+可能是笔记本硬盘插槽松了
+
+下载youtube视频
+sudo curl https://yt-dl.org/latest/youtube-dl -o /usr/local/bin/youtube-dl
+sudo chmod a+rx /usr/local/bin/youtube-dl
+
+默认下载最高画质的
+指定画质加 -f 参数，示例如下
+youtube-dl best[height=480] [url]
+
+shell里给整数前加0，便于文件名排序
+for a in [0-9]*.txt; do
+    mv $a `printf %04d.%s ${a%.*} ${a##*.}`
+done
+
+创建一个大文件
+fallocate -l 10G 10Gigfile
+
+复制一个文件到多个文件
+for file in file{1..100} ; do cp test.txt "$file" ; done
+
+产生大量文件示例
+for i in {1..3} ; do cp ~/testdata/largelog.csv ~/testdata/test/`printf log%05d.csv ${i%.*}` ; done
+
+shell里计算
+rownum=`echo $nextnum+1 | bc`
+或
+rownum=$(echo $nextnum+1 | bc)
+也可以不用bc，shell支持整数运算
+rownum=$((nextnum+1))
+在 bash 和 ksh 中可以用如下方式简写：
+((rownum=nextnum+1))
+
+设置系统默认浏览器
+system-settings -> Details -> Default Applications
+修改 web 的默认程序
+
+查看文件换行符
+file file.txt
+会出现如下提示
+file.txt: ISO-8859 text, with CRLF line terminators
+注：CRLF即\r\n，linux的换行符为LF即\n
+
+使非root用户有权限在 /var/log 目录写日志
+在 /var/log 目录下创建一个子目录并使该用户可以创建文件
+
+Ubuntu server会把 /boot 单独分区，且该分区很小，若开启了apt-get自动升级会出现 /boot 分区满，从而导致apt-get Unmet dependencies 的情况，解决办法是删除早期的 linux image generic，示例如下
+
+sudo apt-get autoremove
+出错提示如下
+You might want to run 'apt-get -f install' to correct these.
+The following packages have unmet dependencies:
+ linux-image-extra-3.13.0-66-generic : Depends: linux-image-3.13.0-66-generic but it is not installed
+ linux-image-generic : Depends: linux-image-3.13.0-66-generic but it is not installed
+E: Unmet dependencies. Try using -f.
+
+sudo vim /var/lib/dpkg/status
+删除 linux-image-extra-3.13.0-66-generic 和 linux-image-3.13.0-66-generic ，并将 linux-image-generic 对 linux-image 依赖改成低版本如 3.13.0-65
+
+删除一个linux-image版本
+sudo apt-get purge linux-image-3.13.0-61-generic
+
+解析本地域名
+sudo apt-get install avahi-daemon
+
+测试
+ping ubuntu-kvm2.local
+
+图形化diff工具
+meld
+
+sudo apt-get install meld
+
+局域网IP
+172.16.0.0 / 12
+172.16.0.1  ～   172.31.255.254
+
+10.0.0.0 / 8
+10.0.0.1    ～   10.255.255.254
+
+192.168.0.0 / 16
+192.168.0.1 ～   192.168.255.254
+
+APT仓库镜像
+1. Install apt-mirror:
+sudo apt-get install apt-mirror
+
+2. Create a directory for your mirror:
+mkdir /path/to/repo-mirror
+
+3. Determine which version of Ubuntu or Debian you'd like to mirror. You'll need to add this to your apt-mirror config in the next step.
+
+4. Modify the apt-mirror config, using your favorite editor:
+sudo vim /etc/apt/mirror.list
+
+顶部设置如下
+set base_path /path/to/repo-mirror
+set nthreads 5
+set _tilde 0
+
+底部设置如下
+deb https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ trusty main
+deb-src https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ trusty main
+
+5. 产生镜像
+sudo apt-mirror
+
+ssh通过代理连接服务器
+ssh -p 12789 qubic.chickenkiller.com -o "ProxyCommand=ncat --proxy 127.0.0.1:1087 %h %p"
+
+ubuntu 用 systemd-sysv-generator 映射 sysv init scripts 到 systemd unit
+
+ubuntu vim 设置number
+cd ~
+vim .vimrc
+set number 
+:wq
+
+

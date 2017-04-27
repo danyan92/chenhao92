@@ -1,0 +1,273 @@
+查看系统版本
+cat /etc/redhat-release
+
+mac ssh登录需要设置LC_CTYPE
+
+CentOS 7 操作步骤
+sudo vim /etc/locale.conf ，添加如下
+LC_CTYPE="en_US.UTF-8"
+
+CentOS 6.5 操作步骤
+sudo vim /etc/sysconfig/i18n ，添加如下
+LC_CTYPE="en_US.UTF-8"
+
+修改用户locale
+编辑 $HOME/.i18n
+
+CentOS 7以前的版本和Redhat对应，如CentOS 6.5对应RHEL 6 update 5
+
+将用户加入sudo用户组
+visudo
+添加一行，示例如下
+<user>    ALL=(ALL)       ALL
+
+显示可用网卡
+ip link show
+netstat -i
+ifconfig -a
+
+CentOS 6及以上版本默认不启用网卡，启用方法如下
+sudo vi /etc/sysconfig/network-scripts/ifcfg-<network-device>
+修改如下
+ONBOOT="yes"
+
+重启计算机
+
+安装 vim 等工具
+sudo yum install vim
+
+安装 nslookup ifconfig 等工具包
+sudo yum install bind-utils net-tools
+
+注：不建议使用 ifconfig，建议改用ip命令，显示ip命令为 ip addr show
+不建议使用 nslookup，建议改用 dig
+
+#设置主机名
+vi /etc/sysconfig/network
+修改如下
+NETWORKING=yes
+HOSTNAME=centos.local
+
+LINUX 修改网卡对应eth编号
+vi /etc/udev/rules.d/70-persistent-net.rules
+# PCI device 0x10de:0x054c (forcedeth)
+#SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="11:22:33:44:55:66", ATTR{type}=="1", KERNEL=="eth*", NAME="eth0"
+
+sudo reboot
+
+#设置静态IP
+sudo vim /etc/sysconfig/network-scripts/ifcfg-eth0
+范例设置如下
+DEVICE=eth0
+BOOTPROTO=static
+IPADDR=<ip>
+NETMASK=<netmask>
+GATEWAY=<gateway>
+ONBOOT=yes
+
+#设置dhcp
+sudo vim /etc/sysconfig/network-scripts/ifcfg-eth0
+范例设置如下
+DEVICE=eth0 
+BOOTPROTO=dhcp 
+ONBOOT=yes
+
+#设置dns
+sudo vim /etc/resolv.conf
+范例设置如下
+nameserver 208.67.222.222
+
+service network restart
+
+安装gcc等编译工具
+yum -y install gcc
+
+安装vim
+yum install vim
+
+CentOS 6 禁用iptables
+vi /etc/sysconfig/iptables
+注释所有行
+service iptables restart
+
+禁用selinux
+vi /etc/selinux/config
+将SELINUX改为disabled
+reboot now
+
+禁用防火墙
+systemctl disable firewalld
+
+停止防火墙
+systemctl stop firewalld
+
+Add GNOME to a CentOS Minimal Install
+yum -y groupinstall "Desktop" "Desktop Platform" "X Window System" "Fonts"
+
+没有nslookup的解决办法
+yum install bind-untils
+
+== rpm 用法 ==
+
+查询包的被依赖的包
+rpm -qp mypackage.rpm --provides
+
+查询包的依赖的包
+rpm -qp mypackage.rpm --requires
+
+查看已安装的包
+rpm -qa | less
+
+rpm升级包
+rpm -U package-file
+
+rpm卸载包
+rpm -e package
+
+查询软件的安装路径
+rpm -ql <package>
+
+== yum 用法 ==
+
+更改yum仓库
+注：阿里云仓库不靠谱
+参考 http://mirrors.163.com/.help/centos.html
+备份 /etc/yum.repos.d/CentOS-Base.repo
+mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+下载对应版本repo文件, 放入 /etc/yum.repos.d/
+
+刷新yum本地缓存
+yum clean all
+yum makecache
+
+检查yum软件的更新版本（类似 apt-get update
+yum check-update
+
+升级所有包
+yum update
+
+升级指定包
+yum update [package]
+
+安装 screen 
+yum install screen
+
+查看已安装的包
+yum list installed
+
+删除包
+yum erase <package>
+
+yum卸载包
+yum erase package
+
+----------------------------------安装oracle----------------------------------
+下载CentOS minimal
+虚拟机安装内存分配2G，网络选择桥接
+安装过程中第一步Disk Found选择skip，时区选择上海
+
+设置网卡自动启动
+vi /etc/sysconfig/network-scripts/ifcfg-eth0
+将ONBOOT值改为yes
+
+service network restart
+
+远程ssh登录
+
+禁用iptables
+vi /etc/sysconfig/iptables
+注释所有行
+service iptables restart
+
+安装oracle express
+swap空间设置必须大于等于2GB，即内存设置必须大于等于2GB
+解压缩Oracle 11g Express Edition压缩包并传送到centos虚拟机
+yum update
+yum install bc flex
+cd Disk1
+rpm -ivh oracle-xe-11.2.0-1.0.x86_64.rpm
+service oracle-xe configure
+
+---------------------------------- apache配置  ----------------------------------
+
+默认web目录 /var/www/html/
+
+安装php支持
+sudo yum install php
+
+安装php的mysql驱动
+sudo yum install php-mysql
+
+搜索可用的php模块
+yum search php-
+
+查看php模块的详细信息
+yum info name of the module
+
+重启apache服务
+sudo service httpd restart
+
+查看apache日志
+tailf /var/log/httpd/error_log
+
+---------------------------------- 安装自定义服务 ----------------------------------
+
+将脚本放到 /etc/init.d 路径下
+
+和Debian/Ubuntu使用 update-rc.d 类似
+
+设置开机启动
+sudo chkconfig --level 345 scriptname on
+
+取消开机启动
+sudo chkconfig scriptname off
+
+---------------------------------- 其它 ----------------------------------
+
+禁用 ipv6
+sudo vim /etc/sysctl.conf
+添加如下
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+
+重启系统
+
+安装oracle jdk
+yum localinstall jdk-7u79-linux-x64.rpm
+
+设置默认java
+alternatives --config java
+
+查看 releasever
+python -c 'import yum, pprint; yb = yum.YumBase(); pprint.pprint(yb.conf.yumvar, width=1)'
+
+结果示例
+{'arch': 'ia32e',
+ 'basearch': 'x86_64',
+ 'releasever': '5',
+ 'yum0': '200',
+ 'yum5': 'foo'}
+ 
+yum 提示无法获取 repomd.xml 的原因一般是 releaseserver 没有设置，解决办法
+sudo bash -c "echo 6 > /etc/yum/vars/releasever"
+
+安装 mysql
+sudo yum install mysql-server
+
+启动 mysql
+sudo service mysqld start
+
+初始配置 mysql
+/usr/bin/mysql_secure_installation
+
+编译安装 openssl
+export openSSLVersion = 1_0_2k
+tar xvf OpenSSL_$openSSLVersion.tar.gz
+cd openssl-OpenSSL_$openSSLVersion/
+./config
+make
+sudo make install
+
+替换系统包安装的 openssl
+sudo mv /usr/bin/openssl /usr/bin/openssl.orig
+sudo ln -s /usr/local/ssl/bin/openssl /usr/bin/openssl
