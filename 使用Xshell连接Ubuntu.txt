@@ -1,0 +1,29 @@
+Xshell是一个安全终端模拟软件，可以进行远程登录。我使用XShell的主要目的是在Windows环境下登录Linux终端进行编码，非常方便。本文简单介绍下它的使用方法。
+
+1.下载后在安装时选择个人/学校免费版即可。
+
+2.安装完毕后先在要连接的Ubuntu主机下开启SSH服务，如果没有开启需要安装openssh-server:
+
+sudo apt-get install openssh-server
+　　使用ps -e | grep ssh，如果只有ssh-agent表示还没启动，需要/etc/init.d/ssh start；有sshd说明已启动。
+
+3.打开Xshell，选择“新建”，“连接”设置里选择SSH，主机填入需要连接的主机的IP地址。
+
+　在“用户身份验证”中填入可用的登录Ubuntu的用户名和密码。
+
+　 设置完这两步就可以使用XShell控制Ubuntu主机了。
+
+4.中文乱码的解决方法：
+
+    在确认Ubuntu支持中文的前提下（即，直接使用Ubuntu可以显示中文），在“文件”菜单的“属性”中选择“终端”，“编码”选择“UTF-8”，并勾选“韩中日语言中的不确定字符处理为宽字符”，重新连接即可。还有一种解决方式，不过本人没有试过（http://blog.sina.com.cn/s/blog_65d642220100kjqi.html）：
+
+[root@localhost ~]# cd /etc/sysconfig/
+[root@localhost sysconfig]# cp i18n i18n.bak    #备份i18n文件
+[root@localhost sysconfig]# echo "" >i18n
+[root@localhost sysconfig]# vi i18n      #加入以下内容
+LANG="zh_CN.GB18030"
+LANGUAGE="zh_CN.GB18030:zh_CN.GB2312:zh_CN"
+SUPPORTED="zh_CN.GB18030:zh_CN:zh:en_US.UTF-8:en_US:en"
+SYSFONT="lat0-sun16"
+
+重新连接后中文显示正常
