@@ -1,3 +1,4 @@
+方式一:
 $ wget http://download.redis.io/releases/redis-3.2.8.tar.gz
 $ tar xzf redis-3.2.8.tar.gz
 $ cd redis-3.2.8
@@ -22,3 +23,65 @@ redis> set foo bar
 OK
 redis> get foo
 "bar"
+
+
+在 Ubuntu 系统安装 Redi 可以使用以下命令:
+
+$sudo apt-get update
+$sudo apt-get install redis-server
+启动 Redis
+
+$ redis-server
+查看 redis 是否启动？
+
+$ redis-cli
+以上命令将打开以下终端：
+
+redis 127.0.0.1:6379>
+127.0.0.1 是本机 IP ，6379 是 redis 服务端口。现在我们输入 PING 命令。
+
+redis 127.0.0.1:6379> ping
+PONG
+
+
+如果是用apt-get或者yum install安装的redis，可以直接通过下面的命令停止/启动/重启redis
+
+/etc/init.d/redis-server stop
+/etc/init.d/redis-server start
+/etc/init.d/redis-server restart
+如果是通过源码安装的redis，则可以通过redis的客户端程序redis-cli的shutdown命令来重启redis
+
+redis-cli -h 127.0.0.1 -p 6379 shutdown
+
+
+开放6379端口
+
+安装iptables
+
+一般情况下，ubuntu安装好的时候，iptables会被安装上，没有安装上也没啥，一条命令就可以安装了。
+
+sudo apt-get install iptables
+
+
+安装好了之后就可以添加规则了
+
+sudo iptables -I INPUT -p tcp --dport 80 -j ACCEPT
+
+
+然后可以直接保存了
+
+sudo iptables-save
+
+
+持久化iptables
+
+上文那样做只是暂时保存了开放端口的信息，如果服务器重启，保存的信息就掉了，所以我们需要持久化一下端口信息，这里我们使用 iptables-persistent
+
+安装iptables-persistent
+
+sudo apt-get install iptables-persistent
+
+
+持久化信息
+
+sudo service iptables-persistent save
