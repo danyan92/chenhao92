@@ -1,0 +1,27 @@
+{
+"configs" : [
+  {
+"server" : "47.89.192.240",
+"server_port" : 8388,
+"password" : "1404133491zx",
+"method" : "aes-256-cfb",
+"remarks" : ""}
+,
+  {
+"server" : "104.236.182.90",
+"server_port" : 8388,
+"password" : "11chenhao",
+"method" : "aes-256-cfb",
+"remarks" : ""}
+
+],
+"strategy" : null,
+"index" : 0,
+"global" : false,
+"enabled" : false,
+"shareOverLan" : false,
+"isDefault" : false,
+"localPort" : 1080,
+"pacUrl" : null,
+"useOnlinePac" : false,
+"availabilityStatistics" : false}
